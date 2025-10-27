@@ -1,0 +1,3 @@
+program Snake;
+begin
+end.
