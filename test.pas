@@ -79,6 +79,7 @@ begin
         curPointer := curPointer^.next;
     end;
 
+    {
     GotoXY(5, 5);
     write('*');
     GotoXY(6, 5);
@@ -89,6 +90,7 @@ begin
     write('*');
     GotoXY(7, 7);
     write('*');
+    }
     
 
     readln;
