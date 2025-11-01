@@ -6,9 +6,10 @@ const
     BORDER_CHAR = '*';
     STAR_CHAR = '0';
     SCORE_STEP = 100;
+    GAME_SPEED = 200;
 
 type
-    TDirection = (up, down, left, right);
+    TDirection = (up, down, left, right, none);
     TItem = record
         smbl: char;
         posX, posY: integer;
@@ -25,6 +26,7 @@ type
 { #global var }
 var
     saveTextAttr: integer;
+    gameScore: int64;
 
 procedure GameOver;
 begin
@@ -38,6 +40,51 @@ begin
     {ScoresLadder(gameScore, 1, 3);}
     readln;
     halt(1);
+end;
+
+procedure DrawInfo;
+begin
+    TextColor(Yellow);
+    GotoXY(1, ScreenHeight);
+    write('Snake | ');
+
+    
+    GotoXY(9 , ScreenHeight);
+    write('Score: ');
+    TextColor(Red);
+    write(gameScore);
+    TextColor(Yellow);
+
+    TextAttr := saveTextAttr;
+end;
+
+procedure WriteBorder;
+var
+    i, j: integer;
+begin
+    for i := 1 to ScreenHeight do
+    begin
+        for j := 1 to ScreenWidth do
+        begin
+            GotoXY(j, i-1);
+            if ((i = 1) or (i = ScreenHeight)) or
+                ((j = 1) or (j = ScreenWidth)) then
+            begin
+                write(BORDER_CHAR);
+            end;
+        end;
+    end;
+    GotoXY(1, 1);
+end;
+
+procedure GamePause;
+begin
+    GotoXY(1, 1);
+    TextColor(Yellow);
+    write('The game is pause. Type enter to continue games');
+    readln;
+    TextAttr := saveTextAttr;
+    WriteBorder;
 end;
 
 procedure QInit(var q: TQR);
@@ -82,7 +129,7 @@ begin
     end;
 end;
 
-procedure WriteSnake(var snake:TQR);
+procedure WriteSnake(var snake: TQR);
 var
     cur: TQP;
 begin
@@ -91,6 +138,7 @@ begin
     begin
         GotoXY(cur^.data.posX, cur^.data.posY);
         write(cur^.data.smbl);
+        
         cur := cur^.next;
     end;
 end;
@@ -103,6 +151,59 @@ begin
         PressKeyChecker := false;
 end;
 
+function
+PossiblityOfChangingDirection(var snake: TQR; dir: TDirection): TDirection;
+var
+    cur: TQP;
+    tmpPos, tmpPosNext: integer;
+begin
+    cur := snake.first;
+    if cur^.next <> nil then
+    begin
+        GotoXY(1, 1);
+        write('dir2: ', dir);
+        case dir of
+            up:
+            begin
+                tmpPos := cur^.data.posY-1;
+                tmpPosNext := cur^.next^.data.posY;
+                if PressKeyChecker(tmpPos, tmpPosNext) then
+                    PossiblityOfChangingDirection := none
+                else
+                    PossiblityOfChangingDirection := up;
+            end;
+            down:
+            begin
+                tmpPos := cur^.data.posY+1;
+                tmpPosNext := cur^.next^.data.posY;
+                if PressKeyChecker(tmpPos, tmpPosNext) then
+                    PossiblityOfChangingDirection := none
+                else
+                    PossiblityOfChangingDirection := down;
+            end;
+            left:
+            begin
+                tmpPos := cur^.data.posX-1;
+                tmpPosNext := cur^.next^.data.posX;
+                if PressKeyChecker(tmpPos, tmpPosNext) then
+                    PossiblityOfChangingDirection := none
+                else
+                    PossiblityOfChangingDirection := left;
+            end;
+            right:
+            begin
+                tmpPos := cur^.data.posX+1;
+                tmpPosNext := cur^.next^.data.posX;
+                if PressKeyChecker(tmpPos, tmpPosNext) then
+                    PossiblityOfChangingDirection := none
+                else
+                    PossiblityOfChangingDirection := right;
+            end;
+        end;
+    end;
+
+end;
+
 procedure MoveSnake(var snake: TQR; dir: TDirection);
 var
     i, j: integer;
@@ -110,36 +211,12 @@ var
     cur, cur2: TQP;
 begin
     { write a new snake in new position }
-    i := 1;
     cur := snake.first;
     cur2 := snake.first;
 
-    { checking key availability }
-    case dir of
-        up:
-        begin
-            if PressKeyChecker(cur^.data.posY-1, cur^.next^.data.posY) then
-                exit;
-        end;
-        down:
-        begin
-            if PressKeyChecker(cur^.data.posY+1, cur^.next^.data.posY) then
-                exit;
-        end;
-        left:
-        begin
-            if PressKeyChecker(cur^.data.posX-1, cur^.next^.data.posX) then
-                exit;
-        end;
-        right:
-        begin
-            if PressKeyChecker(cur^.data.posX+1, cur^.next^.data.posX) then
-                exit;
-        end;
-    end;
-
     { clear prev snake position }
     HideSnake(snake);
+    i := 1;
     while cur <> nil do
     begin
         if i = 1 then 
@@ -190,6 +267,7 @@ begin
             tmpPosY := cur^.data.posY;
             cur^.data.posX := curPosX;
             cur^.data.posY := curPosY;
+
             GotoXY(cur^.data.posX, cur^.data.posY);
             curPosX := tmpPosX;
             curPosY := tmpPosY;
@@ -206,48 +284,90 @@ begin
     TextAttr := saveTextAttr;
 end;
 
+{ ###################################################################### }
+function CheckBorderLimits(itemPosX, itemPosY: integer): boolean;
+begin
+    if ((itemPosX = 1) or (itemPosX = ScreenWidth)) or
+       ((itemPosY = 1) or (itemPosY = ScreenHeight-1)) then
+    begin
+        CheckBorderLimits := false
+    end
+    else
+        CheckBorderLimits := true;
+end;
+
+procedure SpawnItem(x, y: integer; item: char);
+begin
+    GotoXY(x, y);
+    write(item);
+    GotoXY(1, 1);
+end;
+
+function TouchStar(snakePosX, snakePosY,
+    itemPosX, itemPosY: integer): boolean;
+begin
+    if (snakePosX = itemPosX) and (snakePosY = itemPosY) then
+        TouchStar := true
+    else
+        TouchStar := false;
+end;
+
+procedure CheckPositionForSpawn(var itemPosX, itemPosY: integer);
+begin
+    while true do
+    begin
+        itemPosX := random(ScreenWidth);
+        itemPosY := random(ScreenHeight);
+        if CheckBorderLimits(itemPosX, itemPosY) then
+            break;
+    end;
+end;
+
+procedure RandomDirectionForStart(var dir: TDirection);
+var
+    n: integer;
+begin
+    n := random(4)-1;
+    case n of
+        1: dir := left;
+        2: dir := right;
+        3: dir := up;
+        4: dir := down;
+    end;
+end;
+
 var
     item: TItem;
-    i, tmpX, tmpY, keyCode: integer;
+    tmpX, tmpY, keyCode: integer;
     snake: TQR;
-    curPointer: TQP;
-    dir: TDirection;
+    dir, tmpDir: TDirection;
     lastMove: QWord;
     moveDelay: integer;
+    itemPosX, itemPosY, snakePosX, snakePosY: integer;
 begin
+    { base util}
+    randomize;
     clrscr;
     saveTextAttr := TextAttr;
-    dir := left;
     lastMove := GetTickCount64;
+    gameScore := 0;
 
-    { init snake }
+    { ... }
+    RandomDirectionForStart(dir);
+    WriteBorder;
+    CheckPositionForSpawn(itemPosX, itemPosY);
+    SpawnItem(itemPosX, itemPosY, STAR_CHAR);
+
+    { random spawn and create snake }
     QInit(snake);
-
-    { create snake (lenght = 10) }
-    i := 1;
-    while i < 3 do
-    begin
-        if i = 1 then
-            CreateItem(item, i+34, 4, SNAKE_HEAD_CHAR)
-        else
-            CreateItem(item, i+34, 4, SNAKE_BODY_CHAR);
-        QPutItem(snake, item);
-        inc(i);
-    end;
-
-    { write snake }
-    curPointer := snake.first;
-    while curPointer <> nil do
-    begin
-        GotoXY(curPointer^.data.posX, curPointer^.data.posY);
-        write(curPointer^.data.smbl);
-        
-        curPointer := curPointer^.next;
-    end;
+    CheckPositionForSpawn(snakePosX, snakePosY);
+    CreateItem(item, snakePosX, snakePosY, SNAKE_HEAD_CHAR);
+    QPutItem(snake, item);
+    WriteSnake(snake);
 
     while true do
     begin
-        moveDelay := 200;
+        moveDelay := GAME_SPEED;
 
         if KeyPressed then
         begin
@@ -255,36 +375,35 @@ begin
             case keyCode of
                 -75: { left }
                 begin
-                    dir := left;
-                    {MoveSnake(snake, dir);}
+                    tmpDir := PossiblityOfChangingDirection(snake, left);
+                    if tmpDir <> none then
+                        dir := left;
                 end;
                 -77: { right }
                 begin
-                    dir := right;
-                    {MoveSnake(snake, dir);}
+                    tmpDir := PossiblityOfChangingDirection(snake, right);
+                    if tmpDir <> none then
+                        dir := right;
                 end;
                 -72: { up }
                 begin
-                    dir := up;
-                    {MoveSnake(snake, dir);}
+                    tmpDir := PossiblityOfChangingDirection(snake, up);
+                    if tmpDir <> none then
+                        dir := up;
                 end;
                 -80: { down }
                 begin
-                    dir := down;
-                    {MoveSnake(snake, dir);}
+                    tmpDir := PossiblityOfChangingDirection(snake, down);
+                    if tmpDir <> none then
+                        dir := down;
                 end;
                 32: { space }
                 begin
-                    tmpX := snake.last^.data.posX;
-                    tmpY := snake.last^.data.posY;
-
-                    CreateItem(item, tmpX, tmpY, {SNAKE_BODY_CHAR} '0');
-                    QPutItem(snake, item);
-                    {WriteSnake(snake);}
-                    {PauseGame(saveTextAttr)}
+                    GamePause;
                 end;
                 27: { esc }
                 begin
+                    { close game }
                     clrscr;
                     halt(1);
                 end;
@@ -293,24 +412,43 @@ begin
 
         if (GetTickCount64 - lastMove > moveDelay) then
         begin
+            { info }
+            DrawInfo;
+
+            { move snake }
             MoveSnake(snake, dir);
+
+            { check head position and game over}
+            snakePosX := snake.first^.data.posX;
+            snakePosY := snake.first^.data.posY;
+            if not CheckBorderLimits(snakePosX, snakePosY) then
+            begin
+                GameOver;
+            end;
+
+            { eat star }
+            if TouchStar(snakePosX, snakePosY, itemPosX, itemPosY) then
+            begin
+                { last snake element position }
+                tmpX := snake.last^.data.posX;
+                tmpY := snake.last^.data.posY;
+
+                { create new Item }
+                CreateItem(item, tmpX, tmpY, SNAKE_BODY_CHAR);
+                QPutItem(snake, item);
+
+                { spawn new star }
+                CheckPositionForSpawn(itemPosX, itemPosY);
+                SpawnItem(itemPosX, itemPosY, STAR_CHAR);
+
+                { add score }
+                gameScore := gameScore + SCORE_STEP;
+            end;
+
             lastMove := GetTickCount64;
         end;
 
         delay(30);
     end;
-    {
-    GotoXY(5, 5);
-    write('*');
-    GotoXY(6, 5);
-    write('*');
-    GotoXY(7, 5);
-    write('*');
-    GotoXY(7, 6);
-    write('*');
-    GotoXY(7, 7);
-    write('*');
-    }
-
     clrscr;
 end.
