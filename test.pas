@@ -1,6 +1,14 @@
-uses crt;
+uses crt, GetKeyU;
+
+const
+    SNAKE_HEAD_CHAR = '@';
+    SNAKE_BODY_CHAR = '#';
+    BORDER_CHAR = '*';
+    STAR_CHAR = '0';
+    SCORE_STEP = 100;
 
 type
+    TDirection = (up, down, left, right);
     TItem = record
         smbl: char;
         posX, posY: integer;
@@ -13,6 +21,10 @@ type
     TQR = record
         first, last: TQP;
     end;
+
+{ #global var }
+var
+    saveTextAttr: integer;
 
 procedure QInit(var q: TQR);
 begin
@@ -43,25 +55,91 @@ begin
     item.posY := y;
 end;
 
+procedure MoveSnake(var snake: TQR; dir: TDirection);
+var
+    i, curPosX, curPosY, tmpPosX, tmpPosY: integer;
+    cur: TQP;
+begin
+    cur := snake.first;
+
+    { clear snake symbols }
+    while cur <> nil do
+    begin
+        GotoXY(cur^.data.posX, cur^.data.posY);
+        write(' ');
+        cur := cur^.next;
+    end;
+
+    { write a new snake in new position }
+    i := 1;
+    cur := snake.first;
+    while cur <> nil do
+    begin
+        if i = 1 then 
+        begin
+            TextColor(Red);
+            curPosX := cur^.data.posX;
+            curPosY := cur^.data.posY;
+            case dir of
+                up:
+                    dec(cur^.data.PosY);
+                down:
+                    inc(cur^.data.PosY);
+                left:
+                    dec(cur^.data.PosX);
+                right:
+                    inc(cur^.data.PosX);
+            end;
+            GotoXY(cur^.data.PosX, cur^.data.PosY);
+        end
+        else
+        begin
+            TextColor(Yellow);
+            tmpPosX := cur^.data.posX;
+            tmpPosY := cur^.data.posY;
+            cur^.data.posX := curPosX;
+            cur^.data.posY := curPosY;
+            GotoXY(cur^.data.PosX, cur^.data.PosY);
+            curPosX := tmpPosX;
+            curPosY := tmpPosY;
+        end;
+        write(cur^.data.smbl);
+
+        GotoXY(1, 1);
+        TextAttr := saveTextAttr;
+
+        cur := cur^.next;
+        inc(i);
+    end;
+    TextAttr := saveTextAttr;
+end;
+
 var
     item: TItem;
-    i: integer;
-    q: TQR;
+    i, keyCode: integer;
+    snake: TQR;
     curPointer: TQP;
 begin
     clrscr;
+    saveTextAttr := TextAttr;
 
-    QInit(q);
+    { init snake }
+    QInit(snake);
 
+    { create snake (lenght = 10) }
     i := 1;
     while i < 10 do
     begin
-        CreateItem(item, i+4, 4, '*');
-        QPutItem(q, item);
+        if i = 1 then
+            CreateItem(item, i+34, 4, SNAKE_HEAD_CHAR)
+        else
+            CreateItem(item, i+34, 4, SNAKE_BODY_CHAR);
+        QPutItem(snake, item);
         inc(i);
     end;
 
-    curPointer := q.first;
+    { write snake }
+    curPointer := snake.first;
     while curPointer <> nil do
     begin
         GotoXY(curPointer^.data.posX, curPointer^.data.posY);
@@ -70,15 +148,40 @@ begin
         curPointer := curPointer^.next;
     end;
 
-    curPointer := q.first;
-    while curPointer <> nil do
+    while true do
     begin
-        GotoXY(curPointer^.data.posX, curPointer^.data.posY);
-        write(curPointer^.data.smbl);
-        
-        curPointer := curPointer^.next;
+        if KeyPressed then
+        begin
+            GetKey(keyCode);
+            case keyCode of
+                -75: { left }
+                begin
+                    MoveSnake(snake, left);
+                end;
+                -77: { right }
+                begin
+                    MoveSnake(snake, right);
+                end;
+                -72: { up }
+                begin
+                    MoveSnake(snake, up);
+                end;
+                -80: { down }
+                begin
+                    MoveSnake(snake, down);
+                end;
+                32: { space }
+                begin
+                    {PauseGame(saveTextAttr)}
+                end;
+                27: { esc }
+                begin
+                    clrscr;
+                    halt(1);
+                end;
+            end;
+        end;
     end;
-
     {
     GotoXY(5, 5);
     write('*');
@@ -91,8 +194,6 @@ begin
     GotoXY(7, 7);
     write('*');
     }
-    
 
-    readln;
     clrscr;
 end.
