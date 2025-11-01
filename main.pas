@@ -1,4 +1,4 @@
-program Snake;
+program SnakeGame;
 uses crt,
     { my unit }
     GetKeyU, mDataTypesU, LadderU;
@@ -10,10 +10,39 @@ const
     STAR_CHAR = '0';
     SCORE_STEP = 100;
 
+type
+    TItem = record
+        posX, posY: integer;
+    end;
+    TQPointForSnake = ^TQSnake;
+    TQSnake = record
+        data: TItem;
+        next: TQPointForSnake;
+    end;
+    TQSnakeR = record
+        first, last: TQPointForSnake;
+    end;
+
 { #global var }
 var
     saveTextAttr: integer;
     gameScore: integer;
+
+procedure QPutSnakeItem(var q: TQSnakeR; item: TItem);
+begin
+    if q.first = nil then
+    begin
+        new(q.first);
+        q.last := q.first
+    end
+    else
+    begin
+        new(q.last^.next);
+        q.last := q.last^.next
+    end;
+    q.last^.data := item;
+    q.last^.next := nil
+end;
 
 procedure GameOver;
 begin
@@ -85,7 +114,28 @@ begin
     end;
 end;
 
-procedure MoveSnake(var snakePosX, snakePosY, keyCode: integer);
+{
+procedure WriteSnake(var snake: TQSnakeR);
+var
+    cur: TQPointForSnake;
+begin
+    cur := snake.first;
+    while cur <> nil do
+    begin
+        GotoXY(cur^.data.posX, cur^.data.posY);
+        write(SNAKE_BODY_CHAR);
+        GotoXY(1, 1);
+        cur := cur^.next;
+    end;
+end;
+}
+
+{ ? }
+procedure MoveSnake(
+    var snakePosX, snakePosY: integer;
+    var snake: TQSnakeR;
+    keyCode: integer
+);
 begin
     GotoXY(snakePosX, snakePosY);
     write(' ');
@@ -117,6 +167,8 @@ begin
     begin
         GameOver;
     end;
+
+    {WriteSnake(snake);}
     GotoXY(snakePosX, snakePosY);
     write(SNAKE_HEAD_CHAR);
     GotoXY(1, 1);
@@ -142,14 +194,25 @@ begin
     end;
 end;
 
+procedure AddElementToSnakeQueue(var snake: TQSnakeR; item: TItem);
+begin
+    QPutSnakeItem(snake, item);
+end;
+
 var
     snakePosX, snakePosY: integer;
     itemPosX, itemPosY: integer;
     keyCode: integer;
+    snake: TQSnakeR;
+    item: TItem;
 begin
     clrscr;
     randomize;
     saveTextAttr := TextAttr;
+
+    { snake init }
+    snake.first := nil;
+    snake.last := nil;
 
     gameScore := 0;
     WriteBorder;
@@ -162,7 +225,7 @@ begin
     while true do
     begin
         SystemKeyWatcher(keyCode);
-        MoveSnake(snakePosX, snakePosY, keyCode);
+        MoveSnake(snakePosX, snakePosY, snake, keyCode);
 
         if TouchStar(snakePosX, snakePosY, itemPosX, itemPosY) then
         begin
@@ -170,6 +233,8 @@ begin
             write('touch');
             gameScore := gameScore + SCORE_STEP;
             readln;
+
+            AddElementToSnakeQueue(snake, item);
 
             CheckPositionForSpawn(itemPosX, itemPosY);
             SpawnItem(itemPosX, itemPosY, STAR_CHAR);
