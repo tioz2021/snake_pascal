@@ -2,7 +2,7 @@ unit LadderU;
 
 interface
 
-procedure ScoresLadder(var score: integer; posX, posY: integer);
+procedure ScoresLadder(var score: int64; posX, posY: integer);
 
 implementation
 uses crt, mDataTypesU;
@@ -145,7 +145,7 @@ begin
     close(f)
 end;
 
-procedure ScoresLadder(var score: integer; posX, posY: integer);
+procedure ScoresLadder(var score: int64; posX, posY: integer);
 var
     queue: TQueueRecord;
     stack: TStackPointer;

@@ -1,4 +1,6 @@
-uses crt, SysUtils, GetKeyU;
+uses crt, SysUtils,
+    { my unit }
+    GetKeyU, mDataTypesU, LadderU;
 
 const
     SNAKE_HEAD_CHAR = '@';
@@ -35,9 +37,9 @@ begin
     TextBackground(Yellow);
     writeln('Game Over! Press Enter to finish the game');
     GotoXY(1, 2);
-    {writeln('Your score: ', gameScore);}
+    writeln('Your score: ', gameScore);
     TextAttr := saveTextAttr;
-    {ScoresLadder(gameScore, 1, 3);}
+    ScoresLadder(gameScore, 1, 3);
     readln;
     halt(1);
 end;
