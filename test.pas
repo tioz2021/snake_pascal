@@ -82,18 +82,64 @@ begin
     end;
 end;
 
+procedure WriteSnake(var snake:TQR);
+var
+    cur: TQP;
+begin
+    cur := snake.first;
+    while cur <> nil do
+    begin
+        GotoXY(cur^.data.posX, cur^.data.posY);
+        write(cur^.data.smbl);
+        cur := cur^.next;
+    end;
+end;
+
+function PressKeyChecker(x, y: integer): boolean;
+begin
+    if x = y then
+        PressKeyChecker := true
+    else
+        PressKeyChecker := false;
+end;
+
 procedure MoveSnake(var snake: TQR; dir: TDirection);
 var
     i, j: integer;
     curPosX, curPosY, tmpPosX, tmpPosY: integer;
     cur, cur2: TQP;
 begin
-    HideSnake(snake);
-
     { write a new snake in new position }
     i := 1;
     cur := snake.first;
     cur2 := snake.first;
+
+    { checking key availability }
+    case dir of
+        up:
+        begin
+            if PressKeyChecker(cur^.data.posY-1, cur^.next^.data.posY) then
+                exit;
+        end;
+        down:
+        begin
+            if PressKeyChecker(cur^.data.posY+1, cur^.next^.data.posY) then
+                exit;
+        end;
+        left:
+        begin
+            if PressKeyChecker(cur^.data.posX-1, cur^.next^.data.posX) then
+                exit;
+        end;
+        right:
+        begin
+            if PressKeyChecker(cur^.data.posX+1, cur^.next^.data.posX) then
+                exit;
+        end;
+    end;
+
+    { clear prev snake position }
+    HideSnake(snake);
     while cur <> nil do
     begin
         if i = 1 then 
@@ -101,6 +147,7 @@ begin
             TextColor(Red);
             curPosX := cur^.data.posX;
             curPosY := cur^.data.posY;
+            { change direction }
             case dir of
                 up:
                 begin
@@ -120,6 +167,7 @@ begin
                 end;
             end;
 
+            { collision check } 
             j := 1;
             while cur2 <> nil do
             begin
@@ -134,9 +182,7 @@ begin
                 inc(j);
                 cur2 := cur2^.next;
             end;
-
             GotoXY(cur^.data.posX, cur^.data.posY);
-            {cur^.next^.data.smbl := '0';}
         end
         else
         begin
@@ -149,8 +195,8 @@ begin
             curPosY := tmpPosY;
         end;
 
+        { write snake }
         write(cur^.data.smbl);
-
         GotoXY(1, 1);
         TextAttr := saveTextAttr;
 
@@ -162,7 +208,7 @@ end;
 
 var
     item: TItem;
-    i, keyCode: integer;
+    i, tmpX, tmpY, keyCode: integer;
     snake: TQR;
     curPointer: TQP;
     dir: TDirection;
@@ -179,7 +225,7 @@ begin
 
     { create snake (lenght = 10) }
     i := 1;
-    while i < 10 do
+    while i < 3 do
     begin
         if i = 1 then
             CreateItem(item, i+34, 4, SNAKE_HEAD_CHAR)
@@ -201,7 +247,7 @@ begin
 
     while true do
     begin
-        moveDelay := 500;
+        moveDelay := 200;
 
         if KeyPressed then
         begin
@@ -210,25 +256,31 @@ begin
                 -75: { left }
                 begin
                     dir := left;
-                    MoveSnake(snake, dir);
+                    {MoveSnake(snake, dir);}
                 end;
                 -77: { right }
                 begin
                     dir := right;
-                    MoveSnake(snake, dir);
+                    {MoveSnake(snake, dir);}
                 end;
                 -72: { up }
                 begin
                     dir := up;
-                    MoveSnake(snake, dir);
+                    {MoveSnake(snake, dir);}
                 end;
                 -80: { down }
                 begin
                     dir := down;
-                    MoveSnake(snake, dir);
+                    {MoveSnake(snake, dir);}
                 end;
                 32: { space }
                 begin
+                    tmpX := snake.last^.data.posX;
+                    tmpY := snake.last^.data.posY;
+
+                    CreateItem(item, tmpX, tmpY, {SNAKE_BODY_CHAR} '0');
+                    QPutItem(snake, item);
+                    {WriteSnake(snake);}
                     {PauseGame(saveTextAttr)}
                 end;
                 27: { esc }
@@ -241,7 +293,7 @@ begin
 
         if (GetTickCount64 - lastMove > moveDelay) then
         begin
-
+            MoveSnake(snake, dir);
             lastMove := GetTickCount64;
         end;
 
