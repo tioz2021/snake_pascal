@@ -1,4 +1,4 @@
-uses crt, GetKeyU;
+uses crt, SysUtils, GetKeyU;
 
 const
     SNAKE_HEAD_CHAR = '@';
@@ -25,6 +25,20 @@ type
 { #global var }
 var
     saveTextAttr: integer;
+
+procedure GameOver;
+begin
+    clrscr;
+    TextColor(Red or Blink);
+    TextBackground(Yellow);
+    writeln('Game Over! Press Enter to finish the game');
+    GotoXY(1, 2);
+    {writeln('Your score: ', gameScore);}
+    TextAttr := saveTextAttr;
+    {ScoresLadder(gameScore, 1, 3);}
+    readln;
+    halt(1);
+end;
 
 procedure QInit(var q: TQR);
 begin
@@ -55,24 +69,31 @@ begin
     item.posY := y;
 end;
 
-procedure MoveSnake(var snake: TQR; dir: TDirection);
+procedure HideSnake(var snake: TQR);
 var
-    i, curPosX, curPosY, tmpPosX, tmpPosY: integer;
     cur: TQP;
 begin
     cur := snake.first;
-
-    { clear snake symbols }
     while cur <> nil do
     begin
         GotoXY(cur^.data.posX, cur^.data.posY);
         write(' ');
         cur := cur^.next;
     end;
+end;
+
+procedure MoveSnake(var snake: TQR; dir: TDirection);
+var
+    i, j: integer;
+    curPosX, curPosY, tmpPosX, tmpPosY: integer;
+    cur, cur2: TQP;
+begin
+    HideSnake(snake);
 
     { write a new snake in new position }
     i := 1;
     cur := snake.first;
+    cur2 := snake.first;
     while cur <> nil do
     begin
         if i = 1 then 
@@ -82,27 +103,52 @@ begin
             curPosY := cur^.data.posY;
             case dir of
                 up:
-                    dec(cur^.data.PosY);
+                begin
+                    dec(cur^.data.posY);
+                end;
                 down:
-                    inc(cur^.data.PosY);
+                begin
+                    inc(cur^.data.posY);
+                end;
                 left:
-                    dec(cur^.data.PosX);
+                begin
+                    dec(cur^.data.posX);
+                end;
                 right:
-                    inc(cur^.data.PosX);
+                begin
+                    inc(cur^.data.posX);
+                end;
             end;
-            GotoXY(cur^.data.PosX, cur^.data.PosY);
+
+            j := 1;
+            while cur2 <> nil do
+            begin
+                if j <> 1 then
+                begin
+                    if (cur2^.data.posX = cur^.data.posX) and 
+                        (cur2^.data.posY = cur^.data.posY) then
+                    begin
+                        GameOver;
+                    end;
+                end;
+                inc(j);
+                cur2 := cur2^.next;
+            end;
+
+            GotoXY(cur^.data.posX, cur^.data.posY);
+            {cur^.next^.data.smbl := '0';}
         end
         else
         begin
-            TextColor(Yellow);
             tmpPosX := cur^.data.posX;
             tmpPosY := cur^.data.posY;
             cur^.data.posX := curPosX;
             cur^.data.posY := curPosY;
-            GotoXY(cur^.data.PosX, cur^.data.PosY);
+            GotoXY(cur^.data.posX, cur^.data.posY);
             curPosX := tmpPosX;
             curPosY := tmpPosY;
         end;
+
         write(cur^.data.smbl);
 
         GotoXY(1, 1);
@@ -119,9 +165,14 @@ var
     i, keyCode: integer;
     snake: TQR;
     curPointer: TQP;
+    dir: TDirection;
+    lastMove: QWord;
+    moveDelay: integer;
 begin
     clrscr;
     saveTextAttr := TextAttr;
+    dir := left;
+    lastMove := GetTickCount64;
 
     { init snake }
     QInit(snake);
@@ -150,25 +201,31 @@ begin
 
     while true do
     begin
+        moveDelay := 500;
+
         if KeyPressed then
         begin
             GetKey(keyCode);
             case keyCode of
                 -75: { left }
                 begin
-                    MoveSnake(snake, left);
+                    dir := left;
+                    MoveSnake(snake, dir);
                 end;
                 -77: { right }
                 begin
-                    MoveSnake(snake, right);
+                    dir := right;
+                    MoveSnake(snake, dir);
                 end;
                 -72: { up }
                 begin
-                    MoveSnake(snake, up);
+                    dir := up;
+                    MoveSnake(snake, dir);
                 end;
                 -80: { down }
                 begin
-                    MoveSnake(snake, down);
+                    dir := down;
+                    MoveSnake(snake, dir);
                 end;
                 32: { space }
                 begin
@@ -181,6 +238,14 @@ begin
                 end;
             end;
         end;
+
+        if (GetTickCount64 - lastMove > moveDelay) then
+        begin
+
+            lastMove := GetTickCount64;
+        end;
+
+        delay(30);
     end;
     {
     GotoXY(5, 5);
