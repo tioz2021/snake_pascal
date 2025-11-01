@@ -39,6 +39,7 @@ begin
     GotoXY(1, 2);
     writeln('Your score: ', gameScore);
     TextAttr := saveTextAttr;
+
     ScoresLadder(gameScore, 1, 3);
     readln;
     halt(1);
@@ -162,8 +163,6 @@ begin
     cur := snake.first;
     if cur^.next <> nil then
     begin
-        GotoXY(1, 1);
-        write('dir2: ', dir);
         case dir of
             up:
             begin
@@ -300,9 +299,11 @@ end;
 
 procedure SpawnItem(x, y: integer; item: char);
 begin
+    TextColor(Yellow);
     GotoXY(x, y);
     write(item);
     GotoXY(1, 1);
+    TextAttr := saveTextAttr;
 end;
 
 function TouchStar(snakePosX, snakePosY,
@@ -444,7 +445,7 @@ begin
                 SpawnItem(itemPosX, itemPosY, STAR_CHAR);
 
                 { add score }
-                gameScore := gameScore + SCORE_STEP;
+                {gameScore := gameScore + SCORE_STEP;}
             end;
 
             lastMove := GetTickCount64;

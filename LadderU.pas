@@ -132,15 +132,15 @@ begin
     rewrite(f);
     pp := @(stack);
     topCounter := 1;
-    while (pp^ <> nil) and
-        (pp^^.next <> nil) and (topCounter <= MAX_RESULTS_FOR_LADDER) do
+    while (pp^ <> nil) do
     begin
-        if pp^^.data < MIN_VALID_SCORE then
-            pp := @(pp^^.next);
-
-        write(f, pp^^.data);
-        topCounter := topCounter + 1;
-        pp := @(pp^^.next)
+        if (pp^^.data > MIN_VALID_SCORE) 
+            and (topCounter <= MAX_RESULTS_FOR_LADDER) then
+        begin
+            write(f, pp^^.data);
+            topCounter := topCounter + 1;
+        end;
+        pp := @(pp^^.next);
     end;
     close(f)
 end;
