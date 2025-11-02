@@ -3,12 +3,17 @@ uses crt, SysUtils,
     GetKeyU, mDataTypesU, LadderU;
 
 const
-    SNAKE_HEAD_CHAR = '@';
-    SNAKE_BODY_CHAR = '#';
-    BORDER_CHAR = '*';
-    STAR_CHAR = '0';
+    STAR_CHAR = '*';
+    STAR_CHAR_COLOR = Yellow;
     SCORE_STEP = 100;
     GAME_SPEED = 200;
+
+    SNAKE_HEAD_CHAR = ' ';
+    SNAKE_HEAD_COLOR = Red;
+    SNAKE_BODY_CHAR = ' ';
+    SNAKE_BODY_COLOR = Green;
+    BORDER_CHAR = ' ';
+    BORDER_CHAR_COLOR = LightBlue;
 
 type
     TDirection = (up, down, left, right, none);
@@ -39,7 +44,6 @@ begin
     GotoXY(1, 2);
     writeln('Your score: ', gameScore);
     TextAttr := saveTextAttr;
-
     ScoresLadder(gameScore, 1, 3);
     readln;
     halt(1);
@@ -50,13 +54,12 @@ begin
     TextColor(Yellow);
     GotoXY(1, ScreenHeight);
     write('Snake | ');
-
-    
     GotoXY(9 , ScreenHeight);
     write('Score: ');
     TextColor(Red);
     write(gameScore);
     TextColor(Yellow);
+    GotoXY(1, 1);
 
     TextAttr := saveTextAttr;
 end;
@@ -73,11 +76,13 @@ begin
             if ((i = 1) or (i = ScreenHeight)) or
                 ((j = 1) or (j = ScreenWidth)) then
             begin
+                TextBackground(BORDER_CHAR_COLOR);
                 write(BORDER_CHAR);
             end;
         end;
     end;
     GotoXY(1, 1);
+    TextAttr := saveTextAttr;
 end;
 
 procedure GamePause;
@@ -86,6 +91,7 @@ begin
     TextColor(Yellow);
     write('The game is pause. Type enter to continue games');
     readln;
+    GotoXY(1, 1);
     TextAttr := saveTextAttr;
     WriteBorder;
 end;
@@ -130,6 +136,7 @@ begin
         write(' ');
         cur := cur^.next;
     end;
+    GotoXY(1, 1);
 end;
 
 procedure WriteSnake(var snake: TQR);
@@ -144,6 +151,7 @@ begin
         
         cur := cur^.next;
     end;
+    GotoXY(1, 1);
 end;
 
 function PressKeyChecker(x, y: integer): boolean;
@@ -222,7 +230,6 @@ begin
     begin
         if i = 1 then 
         begin
-            TextColor(Red);
             curPosX := cur^.data.posX;
             curPosY := cur^.data.posY;
             { change direction }
@@ -275,6 +282,10 @@ begin
         end;
 
         { write snake }
+        if i = 1 then
+            TextBackground(SNAKE_HEAD_COLOR)
+        else
+            TextBackground(SNAKE_BODY_COLOR);
         write(cur^.data.smbl);
         GotoXY(1, 1);
         TextAttr := saveTextAttr;
@@ -285,11 +296,10 @@ begin
     TextAttr := saveTextAttr;
 end;
 
-{ ###################################################################### }
 function CheckBorderLimits(itemPosX, itemPosY: integer): boolean;
 begin
-    if ((itemPosX = 1) or (itemPosX = ScreenWidth)) or
-       ((itemPosY = 1) or (itemPosY = ScreenHeight-1)) then
+    if ((itemPosX < 1) or (itemPosX > ScreenWidth-2)) or
+       ((itemPosY < 1) or (itemPosY > ScreenHeight-2)) then
     begin
         CheckBorderLimits := false
     end
@@ -299,7 +309,7 @@ end;
 
 procedure SpawnItem(x, y: integer; item: char);
 begin
-    TextColor(Yellow);
+    TextBackground(STAR_CHAR_COLOR);
     GotoXY(x, y);
     write(item);
     GotoXY(1, 1);
@@ -363,7 +373,9 @@ begin
 
     { random spawn and create snake }
     QInit(snake);
-    CheckPositionForSpawn(snakePosX, snakePosY);
+    {CheckPositionForSpawn(snakePosX, snakePosY);}
+    snakePosX := ScreenWidth div 2;
+    snakePosY := ScreenHeight div 2;
     CreateItem(item, snakePosX, snakePosY, SNAKE_HEAD_CHAR);
     QPutItem(snake, item);
     WriteSnake(snake);
@@ -371,6 +383,13 @@ begin
     while true do
     begin
         moveDelay := GAME_SPEED;
+
+        { move info }
+        GotoXY(ScreenWidth-40, ScreenHeight);
+        write('Move info: ', ScreenWidth, ' : ', ScreenHeight, 
+            ' | ', snakePosX, ' : ', snakePosY,
+            ' | ', itemPosX, ' : ', itemPosY);
+        GotoXY(1, 1);
 
         if KeyPressed then
         begin
@@ -445,7 +464,7 @@ begin
                 SpawnItem(itemPosX, itemPosY, STAR_CHAR);
 
                 { add score }
-                {gameScore := gameScore + SCORE_STEP;}
+                gameScore := gameScore + SCORE_STEP;
             end;
 
             lastMove := GetTickCount64;
