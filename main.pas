@@ -315,7 +315,7 @@ end;
 function CheckBorderLimits(itemPosX, itemPosY: integer): boolean;
 begin
     if ((itemPosX < 1) or (itemPosX > MAX_GAME_WIDTH-2)) or
-       ((itemPosY < 1) or (itemPosY > MAX_GAME_HEIGHT-2)) then
+       ((itemPosY < 2) or (itemPosY > MAX_GAME_HEIGHT-2)) then
     begin
         CheckBorderLimits := false
     end
