@@ -1,3 +1,5 @@
+program SnakeGame;
+
 uses crt, SysUtils,
     { my unit }
     GetKeyU, mDataTypesU, LadderU;
