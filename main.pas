@@ -14,6 +14,8 @@ const
     SNAKE_BODY_COLOR = Green;
     BORDER_CHAR = ' ';
     BORDER_CHAR_COLOR = LightBlue;
+    MAX_GAME_WIDTH = 75;
+    MAX_GAME_HEIGHT = 35;
 
 type
     TDirection = (up, down, left, right, none);
@@ -52,9 +54,9 @@ end;
 procedure DrawInfo;
 begin
     TextColor(Yellow);
-    GotoXY(1, ScreenHeight);
+    GotoXY(1, MAX_GAME_HEIGHT);
     write('Snake | ');
-    GotoXY(9 , ScreenHeight);
+    GotoXY(9 , MAX_GAME_HEIGHT);
     write('Score: ');
     TextColor(Red);
     write(gameScore);
@@ -66,15 +68,27 @@ end;
 
 procedure WriteBorder;
 var
+    x, y: integer;
     i, j: integer;
 begin
-    for i := 1 to ScreenHeight do
+    { max game field size }
+    if ScreenWidth > MAX_GAME_HEIGHT then
+        x := MAX_GAME_WIDTH
+    else
+        x := ScreenWidth;
+
+    if ScreenHeight > MAX_GAME_HEIGHT then
+        y := MAX_GAME_HEIGHT
+    else
+        y := ScreenHeight;
+
+    for i := 1 to y do
     begin
-        for j := 1 to ScreenWidth do
+        for j := 1 to x do
         begin
             GotoXY(j, i-1);
-            if ((i = 1) or (i = ScreenHeight)) or
-                ((j = 1) or (j = ScreenWidth)) then
+            if ((i = 1) or (i = y)) or
+                ((j = 1) or (j = x)) then
             begin
                 TextBackground(BORDER_CHAR_COLOR);
                 write(BORDER_CHAR);
@@ -162,7 +176,7 @@ begin
         PressKeyChecker := false;
 end;
 
-function
+function 
 PossiblityOfChangingDirection(var snake: TQR; dir: TDirection): TDirection;
 var
     cur: TQP;
@@ -298,8 +312,8 @@ end;
 
 function CheckBorderLimits(itemPosX, itemPosY: integer): boolean;
 begin
-    if ((itemPosX < 1) or (itemPosX > ScreenWidth-2)) or
-       ((itemPosY < 1) or (itemPosY > ScreenHeight-2)) then
+    if ((itemPosX < 1) or (itemPosX > MAX_GAME_WIDTH-2)) or
+       ((itemPosY < 1) or (itemPosY > MAX_GAME_HEIGHT-2)) then
     begin
         CheckBorderLimits := false
     end
@@ -329,8 +343,8 @@ procedure CheckPositionForSpawn(var itemPosX, itemPosY: integer);
 begin
     while true do
     begin
-        itemPosX := random(ScreenWidth);
-        itemPosY := random(ScreenHeight);
+        itemPosX := random(MAX_GAME_WIDTH);
+        itemPosY := random(MAX_GAME_HEIGHT);
         if CheckBorderLimits(itemPosX, itemPosY) then
             break;
     end;
@@ -374,8 +388,8 @@ begin
     { random spawn and create snake }
     QInit(snake);
     {CheckPositionForSpawn(snakePosX, snakePosY);}
-    snakePosX := ScreenWidth div 2;
-    snakePosY := ScreenHeight div 2;
+    snakePosX := MAX_GAME_WIDTH div 2;
+    snakePosY := MAX_GAME_HEIGHT div 2;
     CreateItem(item, snakePosX, snakePosY, SNAKE_HEAD_CHAR);
     QPutItem(snake, item);
     WriteSnake(snake);
@@ -385,8 +399,8 @@ begin
         moveDelay := GAME_SPEED;
 
         { move info }
-        GotoXY(ScreenWidth-40, ScreenHeight);
-        write('Move info: ', ScreenWidth, ' : ', ScreenHeight, 
+        GotoXY(MAX_GAME_WIDTH-40, MAX_GAME_HEIGHT);
+        write('Move info: ', MAX_GAME_WIDTH, ' : ', MAX_GAME_HEIGHT, 
             ' | ', snakePosX, ' : ', snakePosY,
             ' | ', itemPosX, ' : ', itemPosY);
         GotoXY(1, 1);
